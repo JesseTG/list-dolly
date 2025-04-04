@@ -45,7 +45,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npx tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+args = "npm run build -- /tmp/obsidian-test-plugins"
 
 [deployment]
 run = ["sh", "-c", "npm install && npm run build"]

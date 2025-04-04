@@ -1,6 +1,9 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const banner =
     `/*
@@ -9,8 +12,71 @@ if you want to view the source, please visit the github repository of this plugi
 */
 `;
 
-const prod = (process.argv[2] === "production");
+// Check for help flag
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+    console.log(`
+Usage: 
+  npm run build [target_directory1] [target_directory2] ...
+  npm run dev [target_directory1] [target_directory2] ...
 
+Examples:
+  npm run build /path/to/obsidian/plugins/list-item-mover
+  npm run dev /path/to/obsidian/plugins/list-item-mover /another/backup/location
+
+This will build the plugin and copy the build artifacts (main.js, manifest.json, styles.css) 
+to the specified target directories.
+    `);
+    process.exit(0);
+}
+
+// Check if first arg is production or development
+let argIndex = 2;
+const prod = (process.argv[argIndex] === "production");
+// If neither prod nor dev specified, assume it's additional arguments
+if (process.argv[argIndex] !== "production" && process.argv[argIndex] !== "development") {
+    argIndex = 1; // No mode specified, so target dirs start at index 2
+}
+
+// Get target directories from command line arguments
+// The starting index depends on whether production/development was specified
+const targetDirs = process.argv.slice(argIndex + 1);
+
+// Files to copy to target directories
+const filesToCopy = ["main.js", "manifest.json", "styles.css"];
+
+// Function to copy files to target directories
+function copyBuildFiles() {
+    if (targetDirs.length === 0) {
+        console.log("No target directories specified. Skipping copy.");
+        return;
+    }
+
+    console.log(`Copying files to ${targetDirs.length} target directories...`);
+    
+    for (const dir of targetDirs) {
+        if (!fs.existsSync(dir)) {
+            console.warn(`Target directory does not exist: ${dir}`);
+            continue;
+        }
+
+        for (const file of filesToCopy) {
+            try {
+                if (fs.existsSync(file)) {
+                    const source = path.resolve(file);
+                    const destination = path.join(dir, file);
+                    fs.copyFileSync(source, destination);
+                    console.log(`Copied ${file} to ${dir}`);
+                } else {
+                    console.warn(`Source file not found: ${file}`);
+                }
+            } catch (err) {
+                console.error(`Error copying ${file} to ${dir}: ${err.message}`);
+            }
+        }
+    }
+}
+
+// Create build context
 const context = await esbuild.context({
     banner: {
         js: banner,
@@ -42,8 +108,25 @@ const context = await esbuild.context({
 });
 
 if (prod) {
+    // For production build
     await context.rebuild();
+    console.log("Production build completed!");
+    copyBuildFiles();
     process.exit(0);
 } else {
-    await context.watch();
+    // For development build with watch
+    context.watch();
+    console.log("Watching for changes...");
+    
+    // Initial build and copy
+    await context.rebuild();
+    copyBuildFiles();
+    
+    // Set up watch handler to copy files on each rebuild
+    context.onEnd(result => {
+        if (result.errors.length === 0) {
+            console.log("Watch build succeeded, copying files...");
+            copyBuildFiles();
+        }
+    });
 }

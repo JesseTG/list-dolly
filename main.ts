@@ -5,7 +5,8 @@ import {
     TFile, 
     Editor, 
     MenuItem, 
-    WorkspaceLeaf
+    WorkspaceLeaf,
+    Notice
 } from 'obsidian';
 import { MoveListItemModal } from './moveListItemModal';
 import { 
@@ -22,6 +23,7 @@ export default class ListItemMoverPlugin extends Plugin {
 
         // Register context menu event
         this.registerEvent(
+            // @ts-ignore - The 'editor-menu' event exists in Obsidian but the type isn't properly defined
             this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor, view: MarkdownView) => {
                 // Check if we're in a list item by getting the current line
                 const cursor = editor.getCursor();
@@ -130,11 +132,11 @@ export default class ListItemMoverPlugin extends Plugin {
         } else {
             // If same file, reload the editor to reflect changes
             const activeLeaf = this.app.workspace.getActiveViewOfType(MarkdownView);
-            if (activeLeaf) {
-                await this.app.workspace.activeLeaf.setViewState({
+            const activeWorkspaceLeaf = this.app.workspace.activeLeaf;
+            if (activeLeaf && activeWorkspaceLeaf) {
+                await activeWorkspaceLeaf.setViewState({
                     type: 'markdown',
-                    state: activeLeaf.getState(),
-                    popstate: true
+                    state: activeLeaf.getState()
                 });
             }
         }
@@ -143,7 +145,8 @@ export default class ListItemMoverPlugin extends Plugin {
         const sourceName = sourceFile.basename;
         const destinationName = destinationFile.basename;
         
-        this.app.notices.show(
+        // Show notification
+        new Notice(
             `List item moved ${sourceFile !== destinationFile ? `from "${sourceName}" to "${destinationName}"` : 'successfully'}`
         );
     }

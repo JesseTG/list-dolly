@@ -1,0 +1,79 @@
+/* List Item Mover Plugin Styles */
+
+/* Modal styles */
+.list-item-mover-modal .list-item-preview {
+  max-height: 150px;
+  overflow: auto;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 16px;
+  font-family: var(--font-monospace);
+}
+
+/* Buttons styling */
+.list-item-mover-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.list-item-mover-buttons button {
+  padding: 6px 12px;
+  margin-left: 8px;
+  border-radius: 4px;
+}
+
+/* Dropdown styling */
+.heading-dropdown option {
+  font-family: var(--font-monospace);
+}
+
+/* Context menu item */
+.menu-item[data-mover-item=true] {
+  display: flex;
+  align-items: center;
+}
+
+.menu-item[data-mover-item=true] .menu-item-icon {
+  margin-right: 8px;
+}
+
+/* Indentation for nested list items in the preview */
+.list-item-preview pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+
+/* Toggle component styling */
+.setting-item-control .checkbox-container {
+  cursor: pointer;
+}
+
+/* Ensure plugin respects dark/light theme */
+.theme-dark .list-item-preview {
+  background-color: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+.theme-light .list-item-preview {
+  background-color: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+/* Improve dropdown readability */
+.dropdown {
+  background-color: var(--background-primary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+}
+
+/* Make the destination selectors more prominent */
+.list-item-mover-modal .setting-item:first-child,
+.list-item-mover-modal .setting-item:nth-child(2) {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 18px;
+}

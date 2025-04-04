@@ -1,0 +1,10 @@
+{
+  "id": "list-item-mover",
+  "name": "List Item Mover",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Move list items between different locations through a right-click context menu",
+  "author": "Obsidian Plugin Developer",
+  "authorUrl": "https://github.com/obsidian-plugin-developer",
+  "isDesktopOnly": false
+}

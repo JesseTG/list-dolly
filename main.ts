@@ -1,12 +1,12 @@
-import { 
-    Plugin, 
-    MarkdownView, 
-    Menu, 
-    TFile, 
-    Editor, 
-    MenuItem, 
+import {
+    Plugin,
+    MarkdownView,
+    Menu,
+    TFile,
+    Editor,
+    MenuItem,
     WorkspaceLeaf,
-    Notice
+    Notice, MarkdownFileInfo
 } from 'obsidian';
 import { MoveListItemModal } from './moveListItemModal';
 import { 
@@ -23,22 +23,18 @@ export default class ListItemMoverPlugin extends Plugin {
 
         // Register context menu event
         this.registerEvent(
-            // @ts-ignore - The 'editor-menu' event exists in Obsidian but the type isn't properly defined
-            this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor, view: MarkdownView) => {
+            this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor, view: MarkdownView | MarkdownFileInfo) => {
                 // Check if we're in a list item by getting the current line
                 const cursor = editor.getCursor();
                 const line = editor.getLine(cursor.line);
+                const file = view.file;
                 
                 // Simple check if the line is a list item (starts with -, *, or number.)
-                if (/^\s*[-*]\s|^\s*\d+\.\s/.test(line)) {
+                if (file && /^\s*[-*]\s|^\s*\d+\.\s/.test(line)) {
                     menu.addItem((item: MenuItem) => {
                         item.setTitle('Move list item')
                         .setIcon('list-video')
                         .onClick(async () => {
-                            // Get the current file
-                            const file = view.file;
-                            if (!file) return;
-
                             // Extract the list item and its subitems
                             const { listItem, startLine, endLine } = extractListItem(editor, cursor.line);
                             

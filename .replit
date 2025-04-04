@@ -13,11 +13,25 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Obsidian Plugin Build"
+args = "obsidian_plugin_test"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Obsidian Plugin Info"
+args = "Obsidian Plugin Build"
+
+[[workflows.workflow]]
+name = "obsidian_plugin_test"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"This plugin requires Obsidian to be installed and running. Please check if you can see the plugin in the Obsidian interface and test its functionality by right-clicking on a list item in a markdown document.\""
 
 [[workflows.workflow]]
 name = "Obsidian Plugin Build"
@@ -31,26 +45,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run build"
-
-[[workflows.workflow]]
-name = "Obsidian Plugin Info"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = """
-cat manifest.json && echo -e \"
-
-The plugin has been built successfully. To install in Obsidian:
-1. Copy main.js, manifest.json, and styles.css to your Obsidian plugins folder
-2. Enable the plugin in Obsidian settings\""""
+args = "npx tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
 
 [deployment]
 run = ["sh", "-c", "npm install && npm run build"]

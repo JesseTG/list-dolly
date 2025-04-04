@@ -1,7 +1,7 @@
 {
   "name": "obsidian-list-dolly",
   "version": "0.1.0",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",

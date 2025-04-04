@@ -33,7 +33,7 @@ export default class ListItemMoverPlugin extends Plugin {
                 if (/^\s*[-*]\s|^\s*\d+\.\s/.test(line)) {
                     menu.addItem((item: MenuItem) => {
                         item.setTitle('Move list item')
-                        .setIcon('arrow-right-circle')
+                        .setIcon('list-video')
                         .onClick(async () => {
                             // Get the current file
                             const file = view.file;

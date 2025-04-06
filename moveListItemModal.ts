@@ -33,8 +33,8 @@ export class MoveListItemModal extends Modal {
         const { contentEl } = this;
         
         contentEl.createEl('h2', { text: 'Move List Item' });
-        
-        const markdownFiles = this.app.vault.getMarkdownFiles();
+
+        const markdownFiles = this.app.vault.getMarkdownFiles().toSorted((a, b) => a.name.localeCompare(b.name));
         let headings: { text: string, level: number }[] = [];
 
         // File selector

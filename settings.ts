@@ -18,10 +18,10 @@ export class ListItemMoverSettingTab extends PluginSettingTab {
     }
 
     display(): void {
-        const { containerEl } = this;
+        const {containerEl} = this;
         containerEl.empty();
 
-        containerEl.createEl('h2', { text: 'List Dolly Settings' });
+        containerEl.createEl('h2', {text: 'List Dolly Settings'});
 
         new Setting(containerEl)
             .setName('File filter regex pattern')

@@ -5,14 +5,13 @@ import {
     TFile,
     Editor,
     MenuItem,
-    WorkspaceLeaf,
-    Notice, MarkdownFileInfo
+    Notice,
+    MarkdownFileInfo,
 } from 'obsidian';
-import { MoveListItemModal } from './moveListItemModal';
-import { 
-    extractListItem, 
-    getHeadingsFromContent, 
-    getListsUnderHeading,
+import {MoveListItemModal} from './moveListItemModal';
+import {
+    extractListItem,
+    getHeadingsFromContent,
     removeListItemAtPosition
 } from './utils/markdownUtils';
 import {DEFAULT_SETTINGS, ListItemMoverSettings, ListItemMoverSettingTab} from "./settings";
@@ -36,63 +35,63 @@ export default class ListItemMoverPlugin extends Plugin {
                 const cursor = editor.getCursor();
                 const line = editor.getLine(cursor.line);
                 const file = view.file;
-                
+
                 // Simple check if the line is a list item (starts with -, *, or number.)
                 if (file && /^\s*[-*]\s|^\s*\d+\.\s/.test(line)) {
                     menu.addItem((item: MenuItem) => {
                         item.setTitle('Move list item')
-                        .setIcon('list-video')
-                        .onClick(async () => {
-                            // Extract the list item and its subitems
-                            const { listItem, startLine, endLine } = extractListItem(editor, cursor.line);
-                            
-                            if (!listItem) {
-                                return;
-                            }
+                            .setIcon('list-video')
+                            .onClick(async () => {
+                                // Extract the list item and its subitems
+                                const {listItem, startLine, endLine} = extractListItem(editor, cursor.line);
 
-                            // Check for frontmatter file regex constraint
-                            let fileRegexPattern = this.settings.fileRegexPattern;
+                                if (!listItem) {
+                                    return;
+                                }
 
-                            try {
-                                const fileContent = await this.app.vault.read(file);
-                                const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-                                const frontmatterMatch = fileContent.match(frontmatterRegex);
+                                // Check for frontmatter file regex constraint
+                                let fileRegexPattern = this.settings.fileRegexPattern;
 
-                                if (frontmatterMatch) {
-                                    const frontmatter = frontmatterMatch[1];
-                                    const listDollyRegex = /list-dolly-file-regex:\s*(.+)$/m;
-                                    const regexMatch = frontmatter.match(listDollyRegex);
+                                try {
+                                    const fileContent = await this.app.vault.read(file);
+                                    const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+                                    const frontmatterMatch = fileContent.match(frontmatterRegex);
 
-                                    if (regexMatch && regexMatch[1]) {
-                                        // Use frontmatter regex instead of global setting
-                                        fileRegexPattern = regexMatch[1].trim();
+                                    if (frontmatterMatch) {
+                                        const frontmatter = frontmatterMatch[1];
+                                        const listDollyRegex = /list-dolly-file-regex:\s*(.+)$/m;
+                                        const regexMatch = frontmatter.match(listDollyRegex);
+
+                                        if (regexMatch && regexMatch[1]) {
+                                            // Use frontmatter regex instead of global setting
+                                            fileRegexPattern = regexMatch[1].trim();
+                                        }
                                     }
+                                } catch (error) {
+                                    console.error("Error parsing frontmatter:", error);
                                 }
-                            } catch (error) {
-                                console.error("Error parsing frontmatter:", error);
-                            }
 
-                            // Open modal for destination selection
-                            const modal = new MoveListItemModal(
-                                this.app,
-                                file,
-                                listItem,
-                                fileRegexPattern,
-                                async (destinationFile, heading, createNewHeading) => {
-                                    await this.moveListItem(
-                                        file,
-                                        destinationFile,
-                                        listItem,
-                                        heading,
-                                        createNewHeading,
-                                        startLine,
-                                        endLine,
-                                        editor
-                                    );
-                                }
-                            );
-                            modal.open();
-                        });
+                                // Open modal for destination selection
+                                const modal = new MoveListItemModal(
+                                    this.app,
+                                    file,
+                                    listItem,
+                                    fileRegexPattern,
+                                    async (destinationFile, heading, createNewHeading) => {
+                                        await this.moveListItem(
+                                            file,
+                                            destinationFile,
+                                            listItem,
+                                            heading,
+                                            createNewHeading,
+                                            startLine,
+                                            endLine,
+                                            editor
+                                        );
+                                    }
+                                );
+                                modal.open();
+                            });
                     });
                 }
             })
@@ -119,7 +118,7 @@ export default class ListItemMoverPlugin extends Plugin {
     ) {
         // Get the content of the destination file
         let destinationContent = await this.app.vault.read(destinationFile);
-        
+
         // If we need to create a new heading
         if (createNewHeading && heading) {
             // Add the new heading at the end of the file with list item
@@ -128,11 +127,11 @@ export default class ListItemMoverPlugin extends Plugin {
             // Find the heading in the destination file
             const headings = getHeadingsFromContent(destinationContent);
             const headingIndex = headings.findIndex(h => h.text === heading);
-            
+
             if (headingIndex !== -1) {
                 // Find where to insert the list item (at the end of the section)
                 let insertPosition: number;
-                
+
                 if (headingIndex < headings.length - 1) {
                     // Insert before the next heading
                     insertPosition = headings[headingIndex + 1].position;
@@ -140,11 +139,11 @@ export default class ListItemMoverPlugin extends Plugin {
                     // Insert at the end of the file
                     insertPosition = destinationContent.length;
                 }
-                
+
                 // Insert the list item
                 const beforeInsert = destinationContent.substring(0, insertPosition);
                 const afterInsert = destinationContent.substring(insertPosition);
-                
+
                 // Check if we need to add a newline before inserting
                 const needsNewline = !beforeInsert.endsWith('\n\n');
                 destinationContent = beforeInsert + (needsNewline ? '\n\n' : '') + listItem + (afterInsert.startsWith('\n') ? '' : '\n') + afterInsert;
@@ -156,10 +155,10 @@ export default class ListItemMoverPlugin extends Plugin {
             // No heading specified, add to the end of the file
             destinationContent += `\n\n${listItem}`;
         }
-        
+
         // Update the destination file
         await this.app.vault.modify(destinationFile, destinationContent);
-        
+
         // Remove the list item from the source file if it's not the same as destination
         if (sourceFile !== destinationFile) {
             // Remove from source
@@ -175,11 +174,11 @@ export default class ListItemMoverPlugin extends Plugin {
                 });
             }
         }
-        
+
         // Notify the user
         const sourceName = sourceFile.basename;
         const destinationName = destinationFile.basename;
-        
+
         // Show notification
         new Notice(
             `List item moved ${sourceFile !== destinationFile ? `from "${sourceName}" to "${destinationName}"` : 'successfully'}`
@@ -190,3 +189,5 @@ export default class ListItemMoverPlugin extends Plugin {
         console.log('Unloading List Item Mover plugin');
     }
 }
+
+

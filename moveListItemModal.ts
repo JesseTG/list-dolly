@@ -1,13 +1,13 @@
-import { 
-    App, 
-    Modal, 
-    Setting, 
-    TFile, 
+import {
+    App,
+    Modal,
+    Setting,
+    TFile,
     DropdownComponent,
     TextComponent,
     ToggleComponent
 } from 'obsidian';
-import { getHeadingsFromContent } from './utils/markdownUtils';
+import {getHeadingsFromContent} from './utils/markdownUtils';
 
 export class MoveListItemModal extends Modal {
     private destinationFile: TFile;
@@ -19,7 +19,7 @@ export class MoveListItemModal extends Modal {
     private onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean) => void;
 
     constructor(
-        app: App, 
+        app: App,
         sourceFile: TFile,
         listItem: string,
         fileRegexPattern: string,
@@ -33,9 +33,9 @@ export class MoveListItemModal extends Modal {
     }
 
     async onOpen() {
-        const { contentEl } = this;
-        
-        contentEl.createEl('h2', { text: 'Move List Item' });
+        const {contentEl} = this;
+
+        contentEl.createEl('h2', {text: 'Move List Item'});
 
         // Get files and apply regex filter if needed
         let markdownFiles = this.app.vault.getMarkdownFiles();
@@ -46,9 +46,9 @@ export class MoveListItemModal extends Modal {
                 markdownFiles = markdownFiles.filter(file => regex.test(file.path));
 
                 // Add notice if filter is active
-                const filterNotice = contentEl.createDiv({ cls: 'filter-notice' });
-                filterNotice.createSpan({ text: 'File filter active: ', cls: 'filter-label' });
-                filterNotice.createSpan({ text: this.fileRegexPattern, cls: 'filter-pattern' });
+                const filterNotice = contentEl.createDiv({cls: 'filter-notice'});
+                filterNotice.createSpan({text: 'File filter active: ', cls: 'filter-label'});
+                filterNotice.createSpan({text: this.fileRegexPattern, cls: 'filter-pattern'});
 
                 // Style the filter notice
                 filterNotice.style.backgroundColor = 'var(--background-secondary)';
@@ -59,8 +59,8 @@ export class MoveListItemModal extends Modal {
             } catch (error) {
                 // Invalid regex - show error message and fall back to showing all files
                 console.error("Invalid regex pattern:", error);
-                const errorNotice = contentEl.createDiv({ cls: 'error-notice' });
-                errorNotice.createSpan({ text: 'Invalid regex pattern: ' + this.fileRegexPattern });
+                const errorNotice = contentEl.createDiv({cls: 'error-notice'});
+                errorNotice.createSpan({text: 'Invalid regex pattern: ' + this.fileRegexPattern});
                 errorNotice.style.color = 'var(--text-error)';
                 errorNotice.style.marginBottom = '8px';
             }
@@ -93,28 +93,28 @@ export class MoveListItemModal extends Modal {
                     const file = markdownFiles.find(f => f.path === value);
                     if (file) {
                         this.destinationFile = file;
-                        
+
                         // Update headings dropdown
                         const content = await this.app.vault.read(file);
                         headings = getHeadingsFromContent(content);
-                        
+
                         // Clear and rebuild headings dropdown
                         const headingDropdown = contentEl.querySelector('.heading-dropdown') as HTMLSelectElement;
                         if (headingDropdown) {
                             // Save current selection if possible
                             const currentSelection = headingDropdown.value;
-                            
+
                             // Clear dropdown
                             while (headingDropdown.firstChild) {
                                 headingDropdown.removeChild(headingDropdown.firstChild);
                             }
-                            
+
                             // Add "No heading" option
                             const noHeadingOption = document.createElement('option');
                             noHeadingOption.value = '';
                             noHeadingOption.textContent = 'No heading (file root)';
                             headingDropdown.appendChild(noHeadingOption);
-                            
+
                             // Add headings
                             headings.forEach(heading => {
                                 const option = document.createElement('option');
@@ -124,7 +124,7 @@ export class MoveListItemModal extends Modal {
                                 option.textContent = `${indent}${heading.text}`;
                                 headingDropdown.appendChild(option);
                             });
-                            
+
                             // Try to restore selection if heading exists in new file
                             if (currentSelection && headings.some(h => h.text === currentSelection)) {
                                 headingDropdown.value = currentSelection;
@@ -135,12 +135,12 @@ export class MoveListItemModal extends Modal {
                         }
                     }
                 });
-                
+
                 // Initialize headings for the current file
                 const content = await this.app.vault.read(this.destinationFile);
                 headings = getHeadingsFromContent(content);
             });
-        
+
         // Heading selector
         const headingSetting = new Setting(contentEl)
             .setName('Destination heading')
@@ -148,10 +148,10 @@ export class MoveListItemModal extends Modal {
             .addDropdown(async (dropdown: DropdownComponent) => {
                 // Add class for easy reference
                 dropdown.selectEl.classList.add('heading-dropdown');
-                
+
                 // Add "No heading" option
                 dropdown.addOption('', 'No heading (file root)');
-                
+
                 // Add headings from the initial file
                 const content = await this.app.vault.read(this.destinationFile);
                 headings = getHeadingsFromContent(content);
@@ -159,10 +159,10 @@ export class MoveListItemModal extends Modal {
                     const indent = '  '.repeat(heading.level - 1);
                     dropdown.addOption(heading.text, `${indent}${heading.text}`);
                 });
-                
+
                 dropdown.onChange(value => {
                     this.selectedHeading = value || null;
-                    
+
                     // Hide/show new heading field based on selection
                     if (value === 'new') {
                         newHeadingField.settingEl.style.display = 'flex';
@@ -171,7 +171,7 @@ export class MoveListItemModal extends Modal {
                     }
                 });
             });
-        
+
         // Create new heading toggle
         new Setting(contentEl)
             .setName('Create new heading')
@@ -187,7 +187,7 @@ export class MoveListItemModal extends Modal {
                     }
                 });
             });
-        
+
         // New heading name field
         const newHeadingField = new Setting(contentEl)
             .setName('New heading name')
@@ -198,16 +198,16 @@ export class MoveListItemModal extends Modal {
                     this.newHeadingName = value;
                 });
             });
-        
+
         // Hide by default
         newHeadingField.settingEl.style.display = 'none';
-        
+
         // Preview section
-        contentEl.createEl('h3', { text: 'List item preview' });
+        contentEl.createEl('h3', {text: 'List item preview'});
         const previewEl = contentEl.createDiv();
         previewEl.addClass('list-item-preview');
-        previewEl.createEl('pre', { text: this.listItem });
-        
+        previewEl.createEl('pre', {text: this.listItem});
+
         // Add some styling to the preview
         previewEl.style.maxHeight = '150px';
         previewEl.style.overflow = 'auto';
@@ -215,38 +215,39 @@ export class MoveListItemModal extends Modal {
         previewEl.style.borderRadius = '4px';
         previewEl.style.padding = '8px';
         previewEl.style.backgroundColor = 'var(--background-secondary)';
-        
+
         // Buttons
         const buttonDiv = contentEl.createDiv();
         buttonDiv.addClass('list-item-mover-buttons');
         buttonDiv.style.display = 'flex';
         buttonDiv.style.justifyContent = 'flex-end';
         buttonDiv.style.marginTop = '1rem';
-        
+
         // Cancel button
-        const cancelButton = buttonDiv.createEl('button', { text: 'Cancel' });
+        const cancelButton = buttonDiv.createEl('button', {text: 'Cancel'});
         cancelButton.addEventListener('click', () => {
             this.close();
         });
-        
+
         // Move button
-        const moveButton = buttonDiv.createEl('button', { text: 'Move Item' });
+        const moveButton = buttonDiv.createEl('button', {text: 'Move Item'});
         moveButton.addClass('mod-cta');
         moveButton.style.marginLeft = '0.5rem';
         moveButton.addEventListener('click', () => {
             let headingToUse = this.selectedHeading;
-            
+
             if (this.createNewHeading && this.newHeadingName) {
                 headingToUse = this.newHeadingName;
             }
-            
+
             this.onSubmit(this.destinationFile, headingToUse, this.createNewHeading);
             this.close();
         });
     }
 
     onClose() {
-        const { contentEl } = this;
+        const {contentEl} = this;
         contentEl.empty();
     }
 }
+

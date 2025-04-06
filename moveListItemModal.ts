@@ -14,9 +14,9 @@ export class MoveListItemModal extends Modal {
     private selectedHeading: string | null = null;
     private createNewHeading: boolean = false;
     private newHeadingName: string = '';
-    private listItem: string;
-    private fileRegexPattern: string;
-    private onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean) => void;
+    private readonly listItem: string;
+    private readonly fileRegexPattern: string;
+    private readonly onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean) => void;
 
     constructor(
         app: App,

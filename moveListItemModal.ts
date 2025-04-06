@@ -8,7 +8,6 @@ import {
     ToggleComponent
 } from 'obsidian';
 import { getHeadingsFromContent } from './utils/markdownUtils';
-import { getAllMarkdownFiles } from './utils/fileUtils';
 
 export class MoveListItemModal extends Modal {
     private destinationFile: TFile;
@@ -35,7 +34,7 @@ export class MoveListItemModal extends Modal {
         
         contentEl.createEl('h2', { text: 'Move List Item' });
         
-        const markdownFiles = await getAllMarkdownFiles(this.app);
+        const markdownFiles = this.app.vault.getMarkdownFiles();
         let headings: { text: string, level: number }[] = [];
 
         // File selector

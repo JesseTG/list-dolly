@@ -1,27 +1,6 @@
 import { App, TFile, TFolder } from 'obsidian';
 
 /**
- * Gets all markdown files in the vault
- */
-export async function getAllMarkdownFiles(app: App): Promise<TFile[]> {
-    const markdownFiles: TFile[] = [];
-    
-    // Recursively traverse the vault
-    function traverseFolder(folder: TFolder) {
-        for (const child of folder.children) {
-            if (child instanceof TFile && child.extension === 'md') {
-                markdownFiles.push(child);
-            } else if (child instanceof TFolder) {
-                traverseFolder(child);
-            }
-        }
-    }
-    
-    traverseFolder(app.vault.getRoot());
-    return markdownFiles;
-}
-
-/**
  * Formats a path for display in UI, focusing on readability
  */
 export function formatPathForDisplay(path: string, maxLength: number = 40): string {

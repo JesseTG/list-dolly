@@ -15,7 +15,6 @@ import {
     getListsUnderHeading,
     removeListItemAtPosition
 } from './utils/markdownUtils';
-import { getAllMarkdownFiles } from './utils/fileUtils';
 
 export default class ListItemMoverPlugin extends Plugin {
     async onload() {

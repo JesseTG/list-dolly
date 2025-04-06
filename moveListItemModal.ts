@@ -15,17 +15,20 @@ export class MoveListItemModal extends Modal {
     private createNewHeading: boolean = false;
     private newHeadingName: string = '';
     private listItem: string;
+    private fileRegexPattern: string;
     private onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean) => void;
 
     constructor(
         app: App, 
         sourceFile: TFile,
         listItem: string,
+        fileRegexPattern: string,
         onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean) => void
     ) {
         super(app);
         this.destinationFile = sourceFile;
         this.listItem = listItem;
+        this.fileRegexPattern = fileRegexPattern;
         this.onSubmit = onSubmit;
     }
 
@@ -34,7 +37,37 @@ export class MoveListItemModal extends Modal {
         
         contentEl.createEl('h2', { text: 'Move List Item' });
 
-        const markdownFiles = this.app.vault.getMarkdownFiles().toSorted((a, b) => a.name.localeCompare(b.name));
+        // Get files and apply regex filter if needed
+        let markdownFiles = this.app.vault.getMarkdownFiles();
+
+        if (this.fileRegexPattern) {
+            try {
+                const regex = new RegExp(this.fileRegexPattern);
+                markdownFiles = markdownFiles.filter(file => regex.test(file.path));
+
+                // Add notice if filter is active
+                const filterNotice = contentEl.createDiv({ cls: 'filter-notice' });
+                filterNotice.createSpan({ text: 'File filter active: ', cls: 'filter-label' });
+                filterNotice.createSpan({ text: this.fileRegexPattern, cls: 'filter-pattern' });
+
+                // Style the filter notice
+                filterNotice.style.backgroundColor = 'var(--background-secondary)';
+                filterNotice.style.padding = '8px';
+                filterNotice.style.borderRadius = '4px';
+                filterNotice.style.marginBottom = '8px';
+                filterNotice.style.fontSize = '0.8em';
+            } catch (error) {
+                // Invalid regex - show error message and fall back to showing all files
+                console.error("Invalid regex pattern:", error);
+                const errorNotice = contentEl.createDiv({ cls: 'error-notice' });
+                errorNotice.createSpan({ text: 'Invalid regex pattern: ' + this.fileRegexPattern });
+                errorNotice.style.color = 'var(--text-error)';
+                errorNotice.style.marginBottom = '8px';
+            }
+        }
+
+        // Sort files alphabetically
+        markdownFiles = markdownFiles.toSorted((a, b) => a.name.localeCompare(b.name));
         let headings: { text: string, level: number }[] = [];
 
         // File selector
@@ -46,10 +79,15 @@ export class MoveListItemModal extends Modal {
                 markdownFiles.forEach(file => {
                     dropdown.addOption(file.path, file.basename);
                 });
-                
-                // Set current file as default
-                dropdown.setValue(this.destinationFile.path);
-                
+
+                // Set current file as default if it's in the filtered list, otherwise set first file
+                if (markdownFiles.some(f => f.path === this.destinationFile.path)) {
+                    dropdown.setValue(this.destinationFile.path);
+                } else if (markdownFiles.length > 0) {
+                    this.destinationFile = markdownFiles[0];
+                    dropdown.setValue(this.destinationFile.path);
+                }
+
                 // Update headings when file changes
                 dropdown.onChange(async (value) => {
                     const file = markdownFiles.find(f => f.path === value);

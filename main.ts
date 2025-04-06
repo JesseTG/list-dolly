@@ -15,10 +15,19 @@ import {
     getListsUnderHeading,
     removeListItemAtPosition
 } from './utils/markdownUtils';
+import {DEFAULT_SETTINGS, ListItemMoverSettings, ListItemMoverSettingTab} from "./settings";
 
 export default class ListItemMoverPlugin extends Plugin {
+    settings: ListItemMoverSettings;
+
     async onload() {
         console.log('Loading List Item Mover plugin');
+
+        // Load settings
+        await this.loadSettings();
+
+        // Add settings tab
+        this.addSettingTab(new ListItemMoverSettingTab(this.app, this));
 
         // Register context menu event
         this.registerEvent(
@@ -41,11 +50,34 @@ export default class ListItemMoverPlugin extends Plugin {
                                 return;
                             }
 
+                            // Check for frontmatter file regex constraint
+                            let fileRegexPattern = this.settings.fileRegexPattern;
+
+                            try {
+                                const fileContent = await this.app.vault.read(file);
+                                const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
+                                const frontmatterMatch = fileContent.match(frontmatterRegex);
+
+                                if (frontmatterMatch) {
+                                    const frontmatter = frontmatterMatch[1];
+                                    const listDollyRegex = /list-dolly-file-regex:\s*(.+)$/m;
+                                    const regexMatch = frontmatter.match(listDollyRegex);
+
+                                    if (regexMatch && regexMatch[1]) {
+                                        // Use frontmatter regex instead of global setting
+                                        fileRegexPattern = regexMatch[1].trim();
+                                    }
+                                }
+                            } catch (error) {
+                                console.error("Error parsing frontmatter:", error);
+                            }
+
                             // Open modal for destination selection
                             const modal = new MoveListItemModal(
                                 this.app,
                                 file,
                                 listItem,
+                                fileRegexPattern,
                                 async (destinationFile, heading, createNewHeading) => {
                                     await this.moveListItem(
                                         file,
@@ -65,6 +97,14 @@ export default class ListItemMoverPlugin extends Plugin {
                 }
             })
         );
+    }
+
+    async loadSettings() {
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    }
+
+    async saveSettings() {
+        await this.saveData(this.settings);
     }
 
     async moveListItem(

@@ -15,20 +15,20 @@ export class MoveListItemModal extends Modal {
     private createNewHeading: boolean = false;
     private newHeadingName: string = '';
     private readonly listItem: string;
-    private readonly fileRegexPattern: string;
+    private readonly fileRegex: RegExp;
     private readonly onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean) => void;
 
     constructor(
         app: App,
         sourceFile: TFile,
         listItem: string,
-        fileRegexPattern: string,
+        fileRegexPattern: RegExp | null,
         onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean) => void
     ) {
         super(app);
         this.destinationFile = sourceFile;
         this.listItem = listItem;
-        this.fileRegexPattern = fileRegexPattern;
+        this.fileRegex = fileRegexPattern;
         this.onSubmit = onSubmit;
     }
 
@@ -40,15 +40,14 @@ export class MoveListItemModal extends Modal {
         // Get files and apply regex filter if needed
         let markdownFiles = this.app.vault.getMarkdownFiles();
 
-        if (this.fileRegexPattern) {
+        if (this.fileRegex) {
             try {
-                const regex = new RegExp(this.fileRegexPattern);
-                markdownFiles = markdownFiles.filter(file => regex.test(file.path));
+                markdownFiles = markdownFiles.filter(file => this.fileRegex.test(file.path));
 
                 // Add notice if filter is active
                 const filterNotice = contentEl.createDiv({cls: 'filter-notice'});
                 filterNotice.createSpan({text: 'File filter active: ', cls: 'filter-label'});
-                filterNotice.createSpan({text: this.fileRegexPattern, cls: 'filter-pattern'});
+                filterNotice.createSpan({text: this.fileRegex.source, cls: 'filter-pattern'});
 
                 // Style the filter notice
                 filterNotice.style.backgroundColor = 'var(--background-secondary)';
@@ -60,7 +59,7 @@ export class MoveListItemModal extends Modal {
                 // Invalid regex - show error message and fall back to showing all files
                 console.error("Invalid regex pattern:", error);
                 const errorNotice = contentEl.createDiv({cls: 'error-notice'});
-                errorNotice.createSpan({text: 'Invalid regex pattern: ' + this.fileRegexPattern});
+                errorNotice.createSpan({text: 'Invalid regex pattern: ' + this.fileRegex});
                 errorNotice.style.color = 'var(--text-error)';
                 errorNotice.style.marginBottom = '8px';
             }

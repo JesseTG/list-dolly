@@ -6,7 +6,7 @@ import {
     Editor,
     MenuItem,
     Notice,
-    MarkdownFileInfo,
+    MarkdownFileInfo, EditorPosition,
 } from 'obsidian';
 import {MoveListItemModal} from './moveListItemModal';
 import {
@@ -15,6 +15,9 @@ import {
     removeListItemAtPosition
 } from './utils/markdownUtils';
 import {DEFAULT_SETTINGS, ListItemMoverSettings, ListItemMoverSettingTab} from "./settings";
+
+const NOTICE_DURATION = 3000; // Duration for notices in milliseconds
+const REGEX_FRONTMATTER_KEY = 'list-dolly-file-regex';
 
 export default class ListItemMoverPlugin extends Plugin {
     settings: ListItemMoverSettings;
@@ -41,61 +44,74 @@ export default class ListItemMoverPlugin extends Plugin {
                     menu.addItem((item: MenuItem) => {
                         item.setTitle('Move list item')
                             .setIcon('list-video')
-                            .onClick(async () => {
-                                // Extract the list item and its subitems
-                                const {listItem, startLine, endLine} = extractListItem(editor, cursor.line);
-
-                                if (!listItem) {
-                                    return;
-                                }
-
-                                // Check for frontmatter file regex constraint
-                                let fileRegexPattern = this.settings.fileRegexPattern;
-
-                                try {
-                                    const fileContent = await this.app.vault.read(file);
-                                    const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
-                                    const frontmatterMatch = fileContent.match(frontmatterRegex);
-
-                                    if (frontmatterMatch) {
-                                        const frontmatter = frontmatterMatch[1];
-                                        const listDollyRegex = /list-dolly-file-regex:\s*(.+)$/m;
-                                        const regexMatch = frontmatter.match(listDollyRegex);
-
-                                        if (regexMatch && regexMatch[1]) {
-                                            // Use frontmatter regex instead of global setting
-                                            fileRegexPattern = regexMatch[1].trim();
-                                        }
-                                    }
-                                } catch (error) {
-                                    console.error("Error parsing frontmatter:", error);
-                                }
-
-                                // Open modal for destination selection
-                                const modal = new MoveListItemModal(
-                                    this.app,
-                                    file,
-                                    listItem,
-                                    fileRegexPattern,
-                                    async (destinationFile, heading, createNewHeading) => {
-                                        await this.moveListItem(
-                                            file,
-                                            destinationFile,
-                                            listItem,
-                                            heading,
-                                            createNewHeading,
-                                            startLine,
-                                            endLine,
-                                            editor
-                                        );
-                                    }
-                                );
-                                modal.open();
-                            });
+                            .onClick(this.moveListItemCallback(editor, cursor, file));
                     });
                 }
             })
         );
+    }
+
+    private moveListItemCallback(editor: Editor, cursor: EditorPosition, file: TFile) {
+        return async (_evt: MouseEvent | KeyboardEvent) => {
+            // Extract the list item and its subitems
+            const {listItem, startLine, endLine} = extractListItem(editor, cursor.line);
+
+            if (!listItem) {
+                throw new Error(`No list item found at ${cursor.line}`);
+            }
+
+            let regex = this.getEffectiveRegex(file);
+
+            // Open modal for destination selection
+            const modal = new MoveListItemModal(
+                this.app,
+                file,
+                listItem,
+                regex,
+                async (destinationFile, heading, createNewHeading) => {
+                    await this.moveListItem(
+                        file,
+                        destinationFile,
+                        listItem,
+                        heading,
+                        createNewHeading,
+                        startLine,
+                        endLine,
+                        editor
+                    );
+                }
+            );
+            modal.open();
+        };
+    }
+
+    private getEffectiveRegex(file: TFile) : RegExp | null {
+        // Check if there's a frontmatter override in the active file
+
+        const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
+        if (frontmatter && frontmatter[REGEX_FRONTMATTER_KEY]) {
+            try {
+                return new RegExp(frontmatter[REGEX_FRONTMATTER_KEY]);
+            } catch (e) {
+                if (e instanceof SyntaxError) {
+                    new Notice(`Regex in frontmatter property "${REGEX_FRONTMATTER_KEY}" is invalid: ${frontmatter[REGEX_FRONTMATTER_KEY]}, falling back to global settings instead.`, NOTICE_DURATION);
+                }
+            }
+        }
+
+        try {
+            // Return the global setting regex if no override found, or if it's not valid
+            return new RegExp(this.settings.fileRegexPattern);
+        }
+        catch (e) {
+            if (e instanceof SyntaxError) {
+                new Notice(`Global regex setting is invalid: ${this.settings.fileRegexPattern}. Please fix it in the settings.`, NOTICE_DURATION);
+                return null; // Return null if the regex is invalid
+            }
+            else {
+                throw e; // rethrow if it's not a SyntaxError
+            }
+        }
     }
 
     async loadSettings() {

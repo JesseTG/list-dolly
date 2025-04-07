@@ -5,7 +5,8 @@ import {
     TFile,
     DropdownComponent,
     TextComponent,
-    ToggleComponent
+    ToggleComponent,
+    TextAreaComponent
 } from 'obsidian';
 import {getHeadingsFromContent} from './utils/markdownUtils';
 
@@ -14,20 +15,20 @@ export class MoveListItemModal extends Modal {
     private selectedHeading: string | null = null;
     private createNewHeading: boolean = false;
     private newHeadingName: string = '';
-    private readonly listItem: string;
+    private editedListItem: string;
     private readonly fileRegex: RegExp;
-    private readonly onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean) => void;
+    private readonly onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean, editedListItem: string) => void;
 
     constructor(
         app: App,
         sourceFile: TFile,
         listItem: string,
         fileRegexPattern: RegExp | null,
-        onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean) => void
+        onSubmit: (destinationFile: TFile, heading: string | null, createNewHeading: boolean, editedListItem: string) => void
     ) {
         super(app);
         this.destinationFile = sourceFile;
-        this.listItem = listItem;
+        this.editedListItem = listItem;
         this.fileRegex = fileRegexPattern;
         this.onSubmit = onSubmit;
     }
@@ -201,11 +202,34 @@ export class MoveListItemModal extends Modal {
         // Hide by default
         newHeadingField.settingEl.style.display = 'none';
 
+        // Edit list item section
+        contentEl.createEl('h3', {text: 'Edit List Item'});
+        const editSetting = new Setting(contentEl)
+            .setName('Edit content')
+            .setDesc('You can modify the list item before moving it');
+
+        let previewEl: HTMLElement;
+
+        editSetting.addTextArea((textarea: TextAreaComponent) => {
+            textarea.setValue(this.editedListItem);
+            textarea.inputEl.rows = 4;
+            textarea.inputEl.style.width = '100%';
+            textarea.inputEl.style.minHeight = '100px';
+
+            textarea.onChange(value => {
+                this.editedListItem = value;
+                // Update the preview in real-time
+                if (previewEl) {
+                    previewEl.querySelector('pre').textContent = value;
+                }
+            });
+        });
+
         // Preview section
         contentEl.createEl('h3', {text: 'List item preview'});
-        const previewEl = contentEl.createDiv();
+        previewEl = contentEl.createDiv();
         previewEl.addClass('list-item-preview');
-        previewEl.createEl('pre', {text: this.listItem});
+        previewEl.createEl('pre', {text: this.editedListItem});
 
         // Add some styling to the preview
         previewEl.style.maxHeight = '150px';
@@ -239,7 +263,7 @@ export class MoveListItemModal extends Modal {
                 headingToUse = this.newHeadingName;
             }
 
-            this.onSubmit(this.destinationFile, headingToUse, this.createNewHeading);
+            this.onSubmit(this.destinationFile, headingToUse, this.createNewHeading, this.editedListItem);
             this.close();
         });
     }

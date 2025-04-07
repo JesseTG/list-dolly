@@ -33,22 +33,24 @@ export default class ListItemMoverPlugin extends Plugin {
 
         // Register context menu event
         this.registerEvent(
-            this.app.workspace.on('editor-menu', (menu: Menu, editor: Editor, view: MarkdownView | MarkdownFileInfo) => {
-                // Check if we're in a list item by getting the current line
-                const cursor = editor.getCursor();
-                const line = editor.getLine(cursor.line);
-                const file = view.file;
-
-                // Simple check if the line is a list item (starts with -, *, or number.)
-                if (file && /^\s*[-*]\s|^\s*\d+\.\s/.test(line)) {
-                    menu.addItem((item: MenuItem) => {
-                        item.setTitle('Move list item')
-                            .setIcon('list-video')
-                            .onClick(this.moveListItemCallback(editor, cursor, file));
-                    });
-                }
-            })
+            this.app.workspace.on('editor-menu', this.onEditorMenu.bind(this)),
         );
+    }
+
+    private onEditorMenu(menu: Menu, editor: Editor, view: MarkdownView | MarkdownFileInfo) {
+        // Check if we're in a list item by getting the current line
+        const cursor = editor.getCursor();
+        const line = editor.getLine(cursor.line);
+        const file = view.file;
+
+        // Simple check if the line is a list item (starts with -, *, or number.)
+        if (file && /^\s*[-*]\s|^\s*\d+\.\s/.test(line)) {
+            menu.addItem((item: MenuItem) => {
+                item.setTitle('Move list item')
+                    .setIcon('list-video')
+                    .onClick(this.moveListItemCallback(editor, cursor, file));
+            });
+        }
     }
 
     private moveListItemCallback(editor: Editor, cursor: EditorPosition, file: TFile) {

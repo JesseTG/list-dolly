@@ -6,9 +6,10 @@ import {
     DropdownComponent,
     TextComponent,
     ToggleComponent,
-    TextAreaComponent
+    TextAreaComponent, SearchComponent
 } from 'obsidian';
 import {getHeadingsFromContent} from './utils/markdownUtils';
+import {FileListFuzzyInputSuggest} from "./fuzzy";
 
 export class MoveListItemModal extends Modal {
     private destinationFile: TFile;
@@ -74,24 +75,18 @@ export class MoveListItemModal extends Modal {
         new Setting(contentEl)
             .setName('Destination file')
             .setDesc('Select the file to move the list item to')
-            .addDropdown(async (dropdown: DropdownComponent) => {
-                // Add all markdown files to dropdown
-                markdownFiles.forEach(file => {
-                    dropdown.addOption(file.path, file.basename);
-                });
-
+            .addSearch(async (search: SearchComponent) => {
                 // Set current file as default if it's in the filtered list, otherwise set first file
                 if (markdownFiles.some(f => f.path === this.destinationFile.path)) {
-                    dropdown.setValue(this.destinationFile.path);
+                    search.setValue(this.destinationFile.path);
                 } else if (markdownFiles.length > 0) {
                     this.destinationFile = markdownFiles[0];
-                    dropdown.setValue(this.destinationFile.path);
+                    search.setValue(this.destinationFile.path);
                 }
 
                 // Update headings when file changes
-                dropdown.onChange(async (value) => {
-                    const file = markdownFiles.find(f => f.path === value);
-                    if (file) {
+                new FileListFuzzyInputSuggest(this.app, search.inputEl, markdownFiles)
+                    .onSelect(async ({item: file}) => {
                         this.destinationFile = file;
 
                         // Update headings dropdown
@@ -133,8 +128,7 @@ export class MoveListItemModal extends Modal {
                                 this.selectedHeading = null;
                             }
                         }
-                    }
-                });
+                    });
 
                 // Initialize headings for the current file
                 const content = await this.app.vault.read(this.destinationFile);

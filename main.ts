@@ -65,8 +65,6 @@ export default class ListItemMoverPlugin extends Plugin {
             // Open modal for destination selection
             const modal = new MoveListItemModal(
                 this.app,
-                file,
-                listItem,
                 regex,
                 async (destinationFile, heading, createNewHeading) => {
                     await this.moveListItem(

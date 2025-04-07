@@ -13,15 +13,15 @@ export function extractListItem(editor: Editor, startLine: number): { listItem: 
     
     // Get the indentation level of the current line
     const currentLine = lines[startLine];
-    const currentIndent = currentLine.match(/^\s*/)[0].length;
     
+    const currentIndent = currentLine.match(/^\s*/)![0].length;
     // Find the end of the list item (including subitems)
     let endLine = startLine;
     for (let i = startLine + 1; i < lines.length; i++) {
         const line = lines[i];
         
         // If line is empty or has less indentation, we've reached the end
-        if (line.trim() === '' || line.match(/^\s*/)[0].length <= currentIndent && /^\s*[-*]\s|^\s*\d+\.\s/.test(line)) {
+        if (line.trim() === '' || line.match(/^\s*/)![0].length <= currentIndent && /^\s*[-*]\s|^\s*\d+\.\s/.test(line)) {
             break;
         }
         

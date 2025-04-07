@@ -77,7 +77,7 @@ export class MoveListItemModal extends FuzzySuggestModal<MoveTarget> {
         }
 
         const indent = "  ".repeat(item.heading.level - 1);
-        return `${item.file.path} > ${indent}${item.heading.heading}`;
+        return `${item.file.path} → ${indent}${item.heading.heading}`;
     }
 
     onChooseItem(item: MoveTarget, _evt: MouseEvent | KeyboardEvent): void {

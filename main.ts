@@ -21,7 +21,7 @@ export default class ListItemMoverPlugin extends Plugin {
     settings: ListItemMoverSettings;
 
     async onload() {
-        console.log('Loading List Item Mover plugin');
+        console.log('Loading List Dolly plugin');
 
         // Load settings
         await this.loadSettings();
@@ -43,6 +43,7 @@ export default class ListItemMoverPlugin extends Plugin {
 
         // Simple check if the line is a list item (starts with -, *, or number.)
         if (file && /^\s*[-*]\s|^\s*\d+\.\s/.test(line)) {
+            console.debug(`${line} at ${file.path}:${cursor.line}:${cursor.ch} is a list item, adding context menu item`);
             menu.addItem((item: MenuItem) => {
                 item.setTitle('Move list item')
                     .setIcon('list-video')
@@ -52,7 +53,9 @@ export default class ListItemMoverPlugin extends Plugin {
     }
 
     private moveListItemCallback(file: TFile, cursor: EditorPosition) {
+        console.debug(`Creating callback to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, cursor, file);
         return async (_evt: MouseEvent | KeyboardEvent) => {
+            console.debug(`Handling click event to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, _evt, cursor, file);
             // Get this file's metadata
             let metadata = this.app.metadataCache.getFileCache(file);
             if (!metadata) {

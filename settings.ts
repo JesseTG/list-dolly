@@ -1,18 +1,18 @@
 import {App, PluginSettingTab, Setting} from "obsidian";
-import ListItemMoverPlugin from "./main";
+import ListDollyPlugin from "./main";
 
-export interface ListItemMoverSettings {
+export interface ListDollySettings {
     fileRegexPattern: string;
 }
 
-export const DEFAULT_SETTINGS: ListItemMoverSettings = {
+export const DEFAULT_SETTINGS: ListDollySettings = {
     fileRegexPattern: ''
 };
 
-export class ListItemMoverSettingTab extends PluginSettingTab {
-    plugin: ListItemMoverPlugin;
+export class ListDollySettingsTab extends PluginSettingTab {
+    plugin: ListDollyPlugin;
 
-    constructor(app: App, plugin: ListItemMoverPlugin) {
+    constructor(app: App, plugin: ListDollyPlugin) {
         super(app, plugin);
         this.plugin = plugin;
     }

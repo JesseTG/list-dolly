@@ -12,14 +12,14 @@ import {MoveListItemModal} from './moveListItemModal';
 import {
     getSubstringFromPos, insertItemIntoString, removeItemFromString
 } from './utils/markdownUtils';
-import {DEFAULT_SETTINGS, ListItemMoverSettings, ListItemMoverSettingTab} from "./settings";
+import {DEFAULT_SETTINGS, ListDollySettings, ListDollySettingsTab} from "./settings";
 import {NoCachedMetadataError} from "./errors";
 
 const NOTICE_DURATION = 3000; // Duration for notices in milliseconds
 const REGEX_FRONTMATTER_KEY = 'list-dolly-file-regex';
 
-export default class ListItemMoverPlugin extends Plugin {
-    settings: ListItemMoverSettings;
+export default class ListDollyPlugin extends Plugin {
+    settings: ListDollySettings;
 
     async onload() {
         console.log('Loading List Dolly plugin');
@@ -28,7 +28,7 @@ export default class ListItemMoverPlugin extends Plugin {
         await this.loadSettings();
 
         // Add settings tab
-        this.addSettingTab(new ListItemMoverSettingTab(this.app, this));
+        this.addSettingTab(new ListDollySettingsTab(this.app, this));
 
         // Register context menu event
         this.registerEvent(

@@ -13,6 +13,7 @@ import {
     getSubstringFromPos, insertItemIntoString, removeItemFromString
 } from './utils/markdownUtils';
 import {DEFAULT_SETTINGS, ListItemMoverSettings, ListItemMoverSettingTab} from "./settings";
+import {NoCachedMetadataError} from "./errors";
 
 const NOTICE_DURATION = 3000; // Duration for notices in milliseconds
 const REGEX_FRONTMATTER_KEY = 'list-dolly-file-regex';
@@ -59,9 +60,9 @@ export default class ListItemMoverPlugin extends Plugin {
             // Get this file's metadata
             const metadata = this.app.metadataCache.getFileCache(file);
             if (!metadata) {
-                const message = `Couldn't find cached metadata for ${file.path}`;
-                new Notice(message, NOTICE_DURATION);
-                throw new Error(message);
+                const error = new NoCachedMetadataError(file);
+                new Notice(error.message, NOTICE_DURATION);
+                throw error;
             }
 
             // Get the list items from the metadata

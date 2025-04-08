@@ -172,8 +172,17 @@ export default class ListItemMoverPlugin extends Plugin {
 
             // TODO: Handle the case where targetFile == sourceFile
             await this.insertItemIntoFile(targetFile, item, targetPos);
-            await this.removeItemFromFile(sourceFile, listItem.position);
         }
+        else {
+            // If there's no specific heading, just append to the end of the file
+            const sourceFileContents = await this.app.vault.read(sourceFile);
+            const item = getSubstringFromPos(sourceFileContents, listItem.position);
+
+            await this.app.vault.process(targetFile, data => data.trimEnd() + '\n' + item.trim());
+            // TODO: Find the first list and insert it at the end of that
+        }
+
+        await this.removeItemFromFile(sourceFile, listItem.position);
 
         const activeLeaf = this.app.workspace.getActiveViewOfType(MarkdownView);
         const activeWorkspaceLeaf = this.app.workspace.activeLeaf;

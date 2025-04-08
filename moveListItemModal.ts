@@ -9,11 +9,9 @@ type MoveTarget = {
     heading: HeadingCache | null;
 };
 
-type OnSubmitCallback = (destinationFile: TFile, heading: string | null, createNewHeading: boolean) => void;
+type OnSubmitCallback = (destinationFile: TFile, heading: HeadingCache | null) => void;
 
 export class MoveListItemModal extends FuzzySuggestModal<MoveTarget> {
-    private createNewHeading: boolean = false;
-    private newHeadingName: string = '';
     private readonly fileRegex: RegExp | null;
     private readonly onSubmit: OnSubmitCallback;
 
@@ -82,12 +80,8 @@ export class MoveListItemModal extends FuzzySuggestModal<MoveTarget> {
 
     onChooseItem(item: MoveTarget, _evt: MouseEvent | KeyboardEvent): void {
         const destinationFile = item.file;
-        let selectedHeading = item.heading?.heading ?? null;
+        let selectedHeading = item.heading ?? null;
 
-        if (this.createNewHeading && this.newHeadingName) {
-            selectedHeading = this.newHeadingName;
-        }
-
-        this.onSubmit(destinationFile, selectedHeading, this.createNewHeading);
+        this.onSubmit(destinationFile, selectedHeading);
     }
 }

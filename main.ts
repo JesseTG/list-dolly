@@ -6,13 +6,11 @@ import {
     Editor,
     MenuItem,
     Notice,
-    MarkdownFileInfo, EditorPosition,
+    MarkdownFileInfo, EditorPosition, Loc, Pos, HeadingCache, ListItemCache,
 } from 'obsidian';
 import {MoveListItemModal} from './moveListItemModal';
 import {
-    extractListItem,
-    getHeadingsFromContent,
-    removeListItemAtPosition
+    getSubstringFromPos, insertItemIntoString, removeItemFromString
 } from './utils/markdownUtils';
 import {DEFAULT_SETTINGS, ListItemMoverSettings, ListItemMoverSettingTab} from "./settings";
 
@@ -48,36 +46,54 @@ export default class ListItemMoverPlugin extends Plugin {
             menu.addItem((item: MenuItem) => {
                 item.setTitle('Move list item')
                     .setIcon('list-video')
-                    .onClick(this.moveListItemCallback(editor, cursor, file));
+                    .onClick(this.moveListItemCallback(file, cursor));
             });
         }
     }
 
-    private moveListItemCallback(editor: Editor, cursor: EditorPosition, file: TFile) {
+    private moveListItemCallback(file: TFile, cursor: EditorPosition) {
         return async (_evt: MouseEvent | KeyboardEvent) => {
-            // Extract the list item and its subitems
-            const {listItem, startLine, endLine} = extractListItem(editor, cursor.line);
-
-            if (!listItem) {
-                throw new Error(`No list item found at ${cursor.line}`);
+            // Get this file's metadata
+            let metadata = this.app.metadataCache.getFileCache(file);
+            if (!metadata) {
+                const message = `Couldn't find cached metadata for ${file.path}`;
+                new Notice(message, NOTICE_DURATION);
+                throw new Error(message);
             }
 
-            let regex = this.getEffectiveRegex(file);
+            // Get the list items from the metadata
+            let listItems = metadata?.listItems;
+            if (!listItems) {
+                const message = `No list items found in ${file.path}`;
+                new Notice(message, NOTICE_DURATION);
+                throw new Error(message);
+            }
+
+            // Get the list item at the current cursor position
+            let listItem = listItems.find(item =>
+                item.position.start.line <= cursor.line && cursor.line < item.position.end.line
+            );
+            if (!listItem) {
+                // If there is no list item here...
+                const message = `No list item found at line ${cursor.line}`;
+                new Notice(message, NOTICE_DURATION);
+                throw new Error(message);
+            }
+
+            // TODO: Get child list items so we can move those, too
+
+            const regex = this.getEffectiveRegex(file);
 
             // Open modal for destination selection
             const modal = new MoveListItemModal(
                 this.app,
                 regex,
-                async (destinationFile, heading, createNewHeading) => {
+                async (destinationFile, heading) => {
                     await this.moveListItem(
                         file,
                         destinationFile,
                         listItem,
-                        heading,
-                        createNewHeading,
-                        startLine,
-                        endLine,
-                        editor
+                        heading
                     );
                 }
             );
@@ -85,7 +101,7 @@ export default class ListItemMoverPlugin extends Plugin {
         };
     }
 
-    private getEffectiveRegex(file: TFile) : RegExp | null {
+    private getEffectiveRegex(file: TFile): RegExp | null {
         // Check if there's a frontmatter override in the active file
 
         const frontmatter = this.app.metadataCache.getFileCache(file)?.frontmatter;
@@ -102,13 +118,11 @@ export default class ListItemMoverPlugin extends Plugin {
         try {
             // Return the global setting regex if no override found, or if it's not valid
             return new RegExp(this.settings.fileRegexPattern);
-        }
-        catch (e) {
+        } catch (e) {
             if (e instanceof SyntaxError) {
                 new Notice(`Global regex setting is invalid: ${this.settings.fileRegexPattern}. Please fix it in the settings.`, NOTICE_DURATION);
                 return null; // Return null if the regex is invalid
-            }
-            else {
+            } else {
                 throw e; // rethrow if it's not a SyntaxError
             }
         }
@@ -124,85 +138,69 @@ export default class ListItemMoverPlugin extends Plugin {
 
     async moveListItem(
         sourceFile: TFile,
-        destinationFile: TFile,
-        listItem: string,
-        heading: string | null,
-        createNewHeading: boolean,
-        startLine: number,
-        endLine: number,
-        editor: Editor
+        targetFile: TFile,
+        listItem: ListItemCache,
+        targetHeading: HeadingCache | null
     ) {
         // Get the content of the destination file
-        let destinationContent = await this.app.vault.read(destinationFile);
-
-        // If we need to create a new heading
-        if (createNewHeading && heading) {
-            // Add the new heading at the end of the file with list item
-            destinationContent += `\n\n## ${heading}\n\n${listItem}`;
-        } else if (heading) {
-            // Find the heading in the destination file
-            const headings = getHeadingsFromContent(destinationContent);
-            const headingIndex = headings.findIndex(h => h.text === heading);
-
-            if (headingIndex !== -1) {
-                // Find where to insert the list item (at the end of the section)
-                let insertPosition: number;
-
-                if (headingIndex < headings.length - 1) {
-                    // Insert before the next heading
-                    insertPosition = headings[headingIndex + 1].position;
-                } else {
-                    // Insert at the end of the file
-                    insertPosition = destinationContent.length;
-                }
-
-                // Insert the list item
-                const beforeInsert = destinationContent.substring(0, insertPosition);
-                const afterInsert = destinationContent.substring(insertPosition);
-
-                // Check if we need to add a newline before inserting
-                const needsNewline = !beforeInsert.endsWith('\n\n');
-                destinationContent = beforeInsert + (needsNewline ? '\n\n' : '') + listItem + (afterInsert.startsWith('\n') ? '' : '\n') + afterInsert;
-            } else {
-                // Heading not found, add it at the end
-                destinationContent += `\n\n## ${heading}\n\n${listItem}`;
-            }
-        } else {
-            // No heading specified, add to the end of the file
-            destinationContent += `\n\n${listItem}`;
+        let targetMetadata = this.app.metadataCache.getFileCache(targetFile);
+        if (!targetMetadata) {
+            let message = `Couldn't find cached metadata for ${targetFile.path}`;
+            new Notice(message, NOTICE_DURATION);
+            throw new Error(message);
         }
 
-        // Update the destination file
-        await this.app.vault.modify(destinationFile, destinationContent);
+        if (targetHeading) {
+            // If there's a specific heading
+            const sourceFileContents = await this.app.vault.read(sourceFile);
+            const item = getSubstringFromPos(sourceFileContents, listItem.position);
 
-        // Remove the list item from the source file if it's not the same as destination
-        if (sourceFile !== destinationFile) {
-            // Remove from source
-            removeListItemAtPosition(editor, startLine, endLine);
-        } else {
-            // If same file, reload the editor to reflect changes
-            const activeLeaf = this.app.workspace.getActiveViewOfType(MarkdownView);
-            const activeWorkspaceLeaf = this.app.workspace.activeLeaf;
-            if (activeLeaf && activeWorkspaceLeaf) {
-                await activeWorkspaceLeaf.setViewState({
-                    type: 'markdown',
-                    state: activeLeaf.getState()
-                });
-            }
+            // Index of the section object that represents the chosen heading
+            const targetSectionIndex = targetMetadata.sections?.findIndex(s => targetHeading.position.start.offset === s.position.start.offset);
+            // TODO: Handle case where targetSectionIndex is -1 or undefined
+
+            // array.at() returns undefined for out-of-bounds indexes
+            const targetPos = targetMetadata.sections?.at(targetSectionIndex! + 1)?.position?.end ?? targetHeading.position.end;
+
+            // TODO: Handle the case where targetFile == sourceFile
+            await this.insertItemIntoFile(targetFile, item, targetPos);
+            await this.removeItemFromFile(sourceFile, listItem.position);
+        }
+
+        const activeLeaf = this.app.workspace.getActiveViewOfType(MarkdownView);
+        const activeWorkspaceLeaf = this.app.workspace.activeLeaf;
+        if (activeLeaf && activeWorkspaceLeaf) {
+            await activeWorkspaceLeaf.setViewState({
+                type: 'markdown',
+                state: activeLeaf.getState()
+            });
         }
 
         // Notify the user
         const sourceName = sourceFile.basename;
-        const destinationName = destinationFile.basename;
+        const destinationName = targetFile.basename;
 
         // Show notification
         new Notice(
-            `List item moved ${sourceFile !== destinationFile ? `from "${sourceName}" to "${destinationName}"` : 'successfully'}`
+            `List item moved ${sourceFile !== targetFile ? `from "${sourceName}" to "${destinationName}"` : 'successfully'}`,
+            NOTICE_DURATION
         );
     }
 
+    private async insertItemIntoFile(file: TFile, item: string, loc: Loc) {
+        return await this.app.vault.process(file, data => {
+            return insertItemIntoString(data, item, loc);
+        });
+    }
+
+    private async removeItemFromFile(file: TFile, itemPos: Pos) {
+        return await this.app.vault.process(file, data => {
+            return removeItemFromString(data, itemPos);
+        });
+    }
+
     onunload() {
-        console.log('Unloading List Item Mover plugin');
+        console.log('Unloading List Dolly');
     }
 }
 

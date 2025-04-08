@@ -47,7 +47,7 @@ export class MoveListItemModal extends FuzzySuggestModal<MoveTarget> {
 
         for (const file of markdownFiles) {
             let metadata = this.app.metadataCache.getFileCache(file);
-            if (!metadata || !metadata.headings) {
+            if (!metadata) {
                 continue;
             }
 
@@ -58,11 +58,13 @@ export class MoveListItemModal extends FuzzySuggestModal<MoveTarget> {
             });
 
             // Add each heading as a target
-            for (const heading of metadata.headings) {
-                moveTargets.push({
-                    file: file,
-                    heading: heading,
-                });
+            if (metadata.headings) {
+                for (const heading of metadata.headings) {
+                    moveTargets.push({
+                        file: file,
+                        heading: heading,
+                    });
+                }
             }
         }
 

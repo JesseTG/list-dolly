@@ -154,17 +154,21 @@ export default class ListItemMoverPlugin extends Plugin {
             throw new Error(message);
         }
 
+        // sections is non-null because it would include an entry for targetHeading
+        const sections = targetMetadata.sections!;
+
         if (targetHeading) {
             // If there's a specific heading
             const sourceFileContents = await this.app.vault.read(sourceFile);
             const item = getSubstringFromPos(sourceFileContents, listItem.position);
 
             // Index of the section object that represents the chosen heading
-            const targetSectionIndex = targetMetadata.sections?.findIndex(s => targetHeading.position.start.offset === s.position.start.offset);
-            // TODO: Handle case where targetSectionIndex is -1 or undefined
+            const targetSectionIndex = sections.findIndex(s => targetHeading.position.start.offset === s.position.start.offset);
+
+            // TODO: Handle case where targetSectionIndex is -1
 
             // array.at() returns undefined for out-of-bounds indexes
-            const targetPos = targetMetadata.sections?.at(targetSectionIndex! + 1)?.position?.end ?? targetHeading.position.end;
+            const targetPos = sections.at(targetSectionIndex + 1)?.position.end ?? targetHeading.position.end;
 
             // TODO: Handle the case where targetFile == sourceFile
             await this.insertItemIntoFile(targetFile, item, targetPos);

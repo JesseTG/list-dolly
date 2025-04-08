@@ -57,7 +57,7 @@ export default class ListItemMoverPlugin extends Plugin {
         return async (_evt: MouseEvent | KeyboardEvent) => {
             console.debug(`Handling click event to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, _evt, cursor, file);
             // Get this file's metadata
-            let metadata = this.app.metadataCache.getFileCache(file);
+            const metadata = this.app.metadataCache.getFileCache(file);
             if (!metadata) {
                 const message = `Couldn't find cached metadata for ${file.path}`;
                 new Notice(message, NOTICE_DURATION);
@@ -65,7 +65,7 @@ export default class ListItemMoverPlugin extends Plugin {
             }
 
             // Get the list items from the metadata
-            let listItems = metadata?.listItems;
+            const listItems = metadata?.listItems;
             if (!listItems) {
                 const message = `No list items found in ${file.path}`;
                 new Notice(message, NOTICE_DURATION);
@@ -73,8 +73,8 @@ export default class ListItemMoverPlugin extends Plugin {
             }
 
             // Get the list item at the current cursor position
-            let listItem = listItems.find(item =>
-                item.position.start.line <= cursor.line && cursor.line < item.position.end.line
+            const listItem = listItems.find(item =>
+                item.position.start.line <= cursor.line && cursor.line <= item.position.end.line
             );
             if (!listItem) {
                 // If there is no list item here...
@@ -146,9 +146,9 @@ export default class ListItemMoverPlugin extends Plugin {
         targetHeading: HeadingCache | null
     ) {
         // Get the content of the destination file
-        let targetMetadata = this.app.metadataCache.getFileCache(targetFile);
+        const targetMetadata = this.app.metadataCache.getFileCache(targetFile);
         if (!targetMetadata) {
-            let message = `Couldn't find cached metadata for ${targetFile.path}`;
+            const message = `Couldn't find cached metadata for ${targetFile.path}`;
             new Notice(message, NOTICE_DURATION);
             throw new Error(message);
         }

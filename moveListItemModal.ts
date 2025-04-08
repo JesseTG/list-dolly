@@ -41,7 +41,7 @@ export class MoveListItemModal extends FuzzySuggestModal<MoveTarget> {
         }
 
         // Sort files alphabetically
-        markdownFiles = markdownFiles.toSorted((a, b) => a.path.localeCompare(b.path));
+        markdownFiles = markdownFiles.sort((a, b) => b.stat.mtime - a.stat.mtime);
 
         let moveTargets: MoveTarget[] = [];
 

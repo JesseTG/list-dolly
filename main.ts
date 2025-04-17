@@ -109,7 +109,8 @@ export default class ListDollyPlugin extends Plugin {
         );
         if (!listItem) {
             // If there is no list item here...
-            const message = `No list item found at line ${cursor.line}`;
+            const message = `No list item found at line ${cursor.line + 1}`;
+            // line numbers are 0-indexed, but the user sees them as 1-indexed
             new Notice(message, NOTICE_DURATION);
             throw new Error(message);
         }

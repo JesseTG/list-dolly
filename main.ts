@@ -1,17 +1,20 @@
 import {
-    Plugin,
+    Editor,
+    EditorPosition,
+    HeadingCache,
+    ListItemCache,
+    Loc,
+    MarkdownFileInfo,
     MarkdownView,
     Menu,
-    TFile,
-    Editor,
     MenuItem,
     Notice,
-    MarkdownFileInfo, EditorPosition, Loc, Pos, HeadingCache, ListItemCache,
+    Plugin,
+    Pos,
+    TFile,
 } from 'obsidian';
 import {MoveListItemModal} from './moveListItemModal';
-import {
-    getSubstringFromPos, insertItemIntoString, removeItemFromString
-} from './utils/markdownUtils';
+import {getSubstringFromPos, insertItemIntoString, removeItemFromString} from './utils/markdownUtils';
 import {DEFAULT_SETTINGS, ListDollySettings, ListDollySettingsTab} from "./settings";
 import {NoCachedMetadataError} from "./errors";
 
@@ -41,12 +44,19 @@ export default class ListDollyPlugin extends Plugin {
             id: 'move-list-item',
             icon: MOVE_LIST_ITEM_ICON,
             name: 'Move list item at cursor',
-            editorCallback: async (editor: Editor, view: MarkdownView | MarkdownFileInfo) => {
+            editorCheckCallback: (checking: boolean, editor: Editor, view: MarkdownView | MarkdownFileInfo) => {
                 const file = view.file;
-                if (file) {
-                    const cursor = editor.getCursor();
-                    await this.moveListItem(file, cursor);
+                if (!file)
+                    // If the user isn't currently editing a Markdown file...
+                    return false;
+
+                if (!checking) {
+                    // If this isn't the preliminary check,
+                    // meaning that we actually want to run this command...
+                    this.moveListItem(file, editor.getCursor());
                 }
+
+                return true;
             }
         });
     }
@@ -72,11 +82,11 @@ export default class ListDollyPlugin extends Plugin {
         console.debug(`Creating callback to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, cursor, file);
         return async (_evt: MouseEvent | KeyboardEvent) => {
             console.debug(`Handling click event to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, _evt, cursor, file);
-            await this.moveListItem(file, cursor);
+            this.moveListItem(file, cursor);
         };
     }
 
-    async moveListItem(file: TFile, cursor: EditorPosition) {
+    private moveListItem(file: TFile, cursor: EditorPosition) {
         // Get this file's metadata
         const metadata = this.app.metadataCache.getFileCache(file);
         if (!metadata) {

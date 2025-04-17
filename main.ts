@@ -21,6 +21,7 @@ import {NoCachedMetadataError} from "./errors";
 const NOTICE_DURATION = 3000; // Duration for notices in milliseconds
 const REGEX_FRONTMATTER_KEY = 'list-dolly-file-regex';
 const MOVE_LIST_ITEM_ICON = 'list-video';
+const LIST_ITEM_REGEX = /^\s*[-*]\s|^\s*\d+\.\s/;
 
 export default class ListDollyPlugin extends Plugin {
     settings: ListDollySettings;
@@ -50,10 +51,17 @@ export default class ListDollyPlugin extends Plugin {
                     // If the user isn't currently editing a Markdown file...
                     return false;
 
+                const cursor = editor.getCursor();
+                const line = editor.getLine(cursor.line);
+                if (!LIST_ITEM_REGEX.test(line)) {
+                    // If the cursor isn't on a list item...
+                    return false;
+                }
+
                 if (!checking) {
                     // If this isn't the preliminary check,
                     // meaning that we actually want to run this command...
-                    this.openMoveListItemModal(file, editor.getCursor());
+                    this.openMoveListItemModal(file, cursor);
                 }
 
                 return true;
@@ -68,7 +76,7 @@ export default class ListDollyPlugin extends Plugin {
         const file = view.file;
 
         // Simple check if the line is a list item (starts with -, *, or number.)
-        if (file && /^\s*[-*]\s|^\s*\d+\.\s/.test(line)) {
+        if (file && LIST_ITEM_REGEX.test(line)) {
             console.debug(`${line} at ${file.path}:${cursor.line}:${cursor.ch} is a list item, adding context menu item`);
             menu.addItem((item: MenuItem) => {
                 item.setTitle('Move list item')

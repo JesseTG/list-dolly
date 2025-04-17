@@ -17,6 +17,7 @@ import {NoCachedMetadataError} from "./errors";
 
 const NOTICE_DURATION = 3000; // Duration for notices in milliseconds
 const REGEX_FRONTMATTER_KEY = 'list-dolly-file-regex';
+const MOVE_LIST_ITEM_ICON = 'list-video';
 
 export default class ListDollyPlugin extends Plugin {
     settings: ListDollySettings;
@@ -34,6 +35,20 @@ export default class ListDollyPlugin extends Plugin {
         this.registerEvent(
             this.app.workspace.on('editor-menu', this.onEditorMenu.bind(this)),
         );
+
+        // Register command
+        this.addCommand({
+            id: 'move-list-item',
+            icon: MOVE_LIST_ITEM_ICON,
+            name: 'Move list item at cursor',
+            editorCallback: async (editor: Editor, view: MarkdownView | MarkdownFileInfo) => {
+                const file = view.file;
+                if (file) {
+                    const cursor = editor.getCursor();
+                    await this.moveListItem(file, cursor);
+                }
+            }
+        });
     }
 
     private onEditorMenu(menu: Menu, editor: Editor, view: MarkdownView | MarkdownFileInfo) {
@@ -47,7 +62,7 @@ export default class ListDollyPlugin extends Plugin {
             console.debug(`${line} at ${file.path}:${cursor.line}:${cursor.ch} is a list item, adding context menu item`);
             menu.addItem((item: MenuItem) => {
                 item.setTitle('Move list item')
-                    .setIcon('list-video')
+                    .setIcon(MOVE_LIST_ITEM_ICON)
                     .onClick(this.moveListItemCallback(file, cursor));
             });
         }
@@ -57,52 +72,56 @@ export default class ListDollyPlugin extends Plugin {
         console.debug(`Creating callback to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, cursor, file);
         return async (_evt: MouseEvent | KeyboardEvent) => {
             console.debug(`Handling click event to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, _evt, cursor, file);
-            // Get this file's metadata
-            const metadata = this.app.metadataCache.getFileCache(file);
-            if (!metadata) {
-                const error = new NoCachedMetadataError(file);
-                new Notice(error.message, NOTICE_DURATION);
-                throw error;
-            }
-
-            // Get the list items from the metadata
-            const listItems = metadata?.listItems;
-            if (!listItems) {
-                const message = `No list items found in ${file.path}`;
-                new Notice(message, NOTICE_DURATION);
-                throw new Error(message);
-            }
-
-            // Get the list item at the current cursor position
-            const listItem = listItems.find(item =>
-                item.position.start.line <= cursor.line && cursor.line <= item.position.end.line
-            );
-            if (!listItem) {
-                // If there is no list item here...
-                const message = `No list item found at line ${cursor.line}`;
-                new Notice(message, NOTICE_DURATION);
-                throw new Error(message);
-            }
-
-            // TODO: Get child list items so we can move those, too
-
-            const regex = this.getEffectiveRegex(file);
-
-            // Open modal for destination selection
-            const modal = new MoveListItemModal(
-                this.app,
-                regex,
-                async (destinationFile, heading) => {
-                    await this.moveListItem(
-                        file,
-                        destinationFile,
-                        listItem,
-                        heading
-                    );
-                }
-            );
-            modal.open();
+            await this.moveListItem(file, cursor);
         };
+    }
+
+    async moveListItem(file: TFile, cursor: EditorPosition) {
+        // Get this file's metadata
+        const metadata = this.app.metadataCache.getFileCache(file);
+        if (!metadata) {
+            const error = new NoCachedMetadataError(file);
+            new Notice(error.message, NOTICE_DURATION);
+            throw error;
+        }
+
+        // Get the list items from the metadata
+        const listItems = metadata?.listItems;
+        if (!listItems) {
+            const message = `No list items found in ${file.path}`;
+            new Notice(message, NOTICE_DURATION);
+            throw new Error(message);
+        }
+
+        // Get the list item at the current cursor position
+        const listItem = listItems.find(item =>
+            item.position.start.line <= cursor.line && cursor.line <= item.position.end.line
+        );
+        if (!listItem) {
+            // If there is no list item here...
+            const message = `No list item found at line ${cursor.line}`;
+            new Notice(message, NOTICE_DURATION);
+            throw new Error(message);
+        }
+
+        // TODO: Get child list items so we can move those, too
+
+        const regex = this.getEffectiveRegex(file);
+
+        // Open modal for destination selection
+        const modal = new MoveListItemModal(
+            this.app,
+            regex,
+            async (destinationFile, heading) => {
+                await this.moveListItemToDestination(
+                    file,
+                    destinationFile,
+                    listItem,
+                    heading
+                );
+            }
+        );
+        modal.open();
     }
 
     private getEffectiveRegex(file: TFile): RegExp | null {
@@ -140,7 +159,7 @@ export default class ListDollyPlugin extends Plugin {
         await this.saveData(this.settings);
     }
 
-    async moveListItem(
+    async moveListItemToDestination(
         sourceFile: TFile,
         targetFile: TFile,
         listItem: ListItemCache,
@@ -220,5 +239,3 @@ export default class ListDollyPlugin extends Plugin {
         console.log('Unloading List Dolly');
     }
 }
-
-

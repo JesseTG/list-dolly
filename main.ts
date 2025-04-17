@@ -124,6 +124,7 @@ export default class ListDollyPlugin extends Plugin {
             this.app,
             regex,
             async (destinationFile, heading) => {
+                // TODO: Could the file have changed by the time this `async` function runs?
                 await this.moveListItemToDestination(
                     file,
                     destinationFile,

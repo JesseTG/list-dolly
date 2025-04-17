@@ -145,6 +145,9 @@ export default class ListDollyPlugin extends Plugin {
                 if (e instanceof SyntaxError) {
                     new Notice(`Regex in frontmatter property "${REGEX_FRONTMATTER_KEY}" is invalid: ${frontmatter[REGEX_FRONTMATTER_KEY]}, falling back to global settings instead.`, NOTICE_DURATION);
                 }
+                else {
+                    throw e; // rethrow if it's not a SyntaxError
+                }
             }
         }
 

@@ -81,17 +81,12 @@ export default class ListDollyPlugin extends Plugin {
             menu.addItem((item: MenuItem) => {
                 item.setTitle('Move list item')
                     .setIcon(MOVE_LIST_ITEM_ICON)
-                    .onClick(this.moveListItemCallback(file, cursor));
+                    .onClick((_evt: MouseEvent | KeyboardEvent) => {
+                        console.debug(`Handling click event to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, _evt, cursor, file);
+                        this.openMoveListItemModal(file, cursor);
+                    });
             });
         }
-    }
-
-    private moveListItemCallback(file: TFile, cursor: EditorPosition) {
-        console.debug(`Creating callback to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, cursor, file);
-        return async (_evt: MouseEvent | KeyboardEvent) => {
-            console.debug(`Handling click event to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, _evt, cursor, file);
-            this.openMoveListItemModal(file, cursor);
-        };
     }
 
     private openMoveListItemModal(file: TFile, cursor: EditorPosition) {
@@ -154,8 +149,7 @@ export default class ListDollyPlugin extends Plugin {
             } catch (e) {
                 if (e instanceof SyntaxError) {
                     new Notice(`Regex in frontmatter property "${REGEX_FRONTMATTER_KEY}" is invalid: ${frontmatter[REGEX_FRONTMATTER_KEY]}, falling back to global settings instead.`, NOTICE_DURATION);
-                }
-                else {
+                } else {
                     throw e; // rethrow if it's not a SyntaxError
                 }
             }
@@ -214,8 +208,7 @@ export default class ListDollyPlugin extends Plugin {
 
             // TODO: Handle the case where targetFile == sourceFile
             await this.insertItemIntoFile(targetFile, item, targetPos);
-        }
-        else {
+        } else {
             // If there's no specific heading, just append to the end of the file
             const sourceFileContents = await this.app.vault.read(sourceFile);
             const item = getSubstringFromPos(sourceFileContents, listItem.position);

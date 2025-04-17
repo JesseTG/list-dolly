@@ -53,7 +53,7 @@ export default class ListDollyPlugin extends Plugin {
                 if (!checking) {
                     // If this isn't the preliminary check,
                     // meaning that we actually want to run this command...
-                    this.moveListItem(file, editor.getCursor());
+                    this.openMoveListItemModal(file, editor.getCursor());
                 }
 
                 return true;
@@ -82,11 +82,11 @@ export default class ListDollyPlugin extends Plugin {
         console.debug(`Creating callback to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, cursor, file);
         return async (_evt: MouseEvent | KeyboardEvent) => {
             console.debug(`Handling click event to move the list item at ${file.path}:${cursor.line}:${cursor.ch}`, _evt, cursor, file);
-            this.moveListItem(file, cursor);
+            this.openMoveListItemModal(file, cursor);
         };
     }
 
-    private moveListItem(file: TFile, cursor: EditorPosition) {
+    private openMoveListItemModal(file: TFile, cursor: EditorPosition) {
         // Get this file's metadata
         const metadata = this.app.metadataCache.getFileCache(file);
         if (!metadata) {
